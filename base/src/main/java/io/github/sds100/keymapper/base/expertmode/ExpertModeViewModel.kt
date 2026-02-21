@@ -70,6 +70,21 @@ class ExpertModeViewModel @Inject constructor(
             }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, State.Loading)
 
+    var showStartErrorDialog by mutableStateOf(false)
+        private set
+
+    init {
+        viewModelScope.launch {
+            useCase.showStartError.collect {
+                showStartErrorDialog = true
+            }
+        }
+    }
+
+    fun dismissStartErrorDialog() {
+        showStartErrorDialog = false
+    }
+
     var showInfoCard by mutableStateOf(!useCase.isInfoDismissed())
         private set
 
@@ -198,15 +213,15 @@ class ExpertModeViewModel @Inject constructor(
     private fun startedStateFlow(): Flow<ExpertModeState.Started> = combine(
         useCase.isAutoStartBootEnabled,
         useCase.isAutoStartBootAllowed,
-        useCase.shellHasGrantRuntimePermissions,
-    ) { autoStartBootChecked, autoStartBootEnabled, shellHasGrantRuntimePermissions ->
+        useCase.xiaomiAdbSecuritySettingsEnabled,
+    ) { autoStartBootChecked, autoStartBootEnabled, xiaomiAdbSecuritySettingsEnabled ->
         ExpertModeState.Started(
             isDefaultUsbModeCompatible =
             useCase.isCompatibleUsbModeSelected().valueOrNull()
                 ?: false,
             autoStartBootChecked = autoStartBootChecked,
             autoStartBootEnabled = autoStartBootEnabled,
-            showXiaomiAdbInputSecurityWarning = !shellHasGrantRuntimePermissions,
+            showXiaomiAdbInputSecurityWarning = !xiaomiAdbSecuritySettingsEnabled,
         )
     }
 }

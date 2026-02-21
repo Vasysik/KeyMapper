@@ -17,7 +17,6 @@ import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.sds100.keymapper.common.BuildConfigProvider
 import io.github.sds100.keymapper.common.models.isSuccess
-import io.github.sds100.keymapper.common.utils.Constants
 import io.github.sds100.keymapper.common.utils.KMError
 import io.github.sds100.keymapper.common.utils.KMResult
 import io.github.sds100.keymapper.common.utils.SettingsUtils
@@ -100,7 +99,7 @@ class SystemBridgeConnectionManagerImpl @Inject constructor(
             try {
                 starter.refreshStarterScript()
             } catch (e: Exception) {
-                Timber.e("Failed to refresh system bridge starter script", e)
+                Timber.e("Failed to refresh system bridge starter script. $e")
             }
         }
     }
@@ -283,7 +282,7 @@ class SystemBridgeConnectionManagerImpl @Inject constructor(
         starter.startWithRoot()
     }
 
-    override fun startWithShizuku() {
+    override suspend fun startWithShizuku() {
         starter.startWithShizuku()
     }
 
@@ -297,25 +296,18 @@ interface SystemBridgeConnectionManager {
     // Do not require min API to check the state.
     val connectionState: StateFlow<SystemBridgeConnectionState>
 
-    @RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
     fun <T> run(block: (ISystemBridge) -> T): KMResult<T>
 
-    @RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
     fun stopSystemBridge()
 
-    @RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
     fun restartSystemBridge()
 
-    @RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
     suspend fun startWithRoot()
 
-    @RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
-    fun startWithShizuku()
+    suspend fun startWithShizuku()
 
-    @RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
     suspend fun startWithAdb()
 
-    @RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
     suspend fun getShellStartCommand(): KMResult<String>
 }
 

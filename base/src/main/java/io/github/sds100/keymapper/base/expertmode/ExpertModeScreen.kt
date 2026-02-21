@@ -38,6 +38,7 @@ import androidx.compose.material.icons.rounded.Numbers
 import androidx.compose.material.icons.rounded.RestartAlt
 import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material.icons.rounded.WarningAmber
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -86,6 +87,12 @@ import kotlinx.coroutines.launch
 fun ExpertModeScreen(modifier: Modifier = Modifier, viewModel: ExpertModeViewModel) {
     val expertModeWarningState by viewModel.warningState.collectAsStateWithLifecycle()
     val expertModeState by viewModel.state.collectAsStateWithLifecycle()
+
+    if (viewModel.showStartErrorDialog) {
+        SystemBridgeStartErrorDialog(
+            onDismissRequest = viewModel::dismissStartErrorDialog,
+        )
+    }
 
     ExpertModeScreen(
         modifier = modifier,
@@ -311,15 +318,6 @@ private fun LoadedContent(
 
         when (state) {
             is ExpertModeState.Started -> {
-                ExpertModeStartedCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 8.dp),
-                    onStopClick = onStopServiceClick,
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
                 if (!state.isDefaultUsbModeCompatible) {
                     IncompatibleUsbModeCard(
                         modifier = Modifier
@@ -337,11 +335,19 @@ private fun LoadedContent(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp),
-                        onLaunchDeveloperOptionsClick = onLaunchDeveloperOptionsClick,
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
                 }
+
+                ExpertModeStartedCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp),
+                    onStopClick = onStopServiceClick,
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
 
                 SwitchPreferenceCompose(
                     modifier = Modifier.padding(horizontal = 8.dp),
@@ -523,10 +529,8 @@ private fun IncompatibleUsbModeCard(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun UsbDebuggingSecuritySettingsCard(
-    modifier: Modifier = Modifier,
-    onLaunchDeveloperOptionsClick: () -> Unit = {},
-) {
+private fun UsbDebuggingSecuritySettingsCard(modifier: Modifier = Modifier) {
+    val ctx = LocalContext.current
     SetupCard(
         modifier = modifier,
         color = MaterialTheme.colorScheme.errorContainer,
@@ -551,7 +555,13 @@ private fun UsbDebuggingSecuritySettingsCard(
         buttonText = stringResource(
             R.string.expert_mode_usb_debugging_security_settings_button,
         ),
-        onButtonClick = onLaunchDeveloperOptionsClick,
+        onButtonClick = {
+            SettingsUtils.launchSettingsScreen(
+                ctx,
+                Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS,
+                null,
+            )
+        },
     )
 }
 
@@ -1071,6 +1081,39 @@ private fun PreviewUsbDebuggingSecuritySettingsCard() {
                 onLaunchDeveloperOptionsClick = {},
             )
         }
+    }
+}
+
+@Composable
+private fun SystemBridgeStartErrorDialog(
+    modifier: Modifier = Modifier,
+    onDismissRequest: () -> Unit,
+) {
+    AlertDialog(
+        modifier = modifier,
+        onDismissRequest = onDismissRequest,
+        title = {
+            Text(stringResource(R.string.expert_mode_start_error_dialog_title))
+        },
+        text = {
+            Text(
+                stringResource(R.string.expert_mode_start_error_dialog_message),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text(stringResource(R.string.pos_ok))
+            }
+        },
+    )
+}
+
+@Preview
+@Composable
+private fun PreviewSystemBridgeStartErrorDialog() {
+    KeyMapperTheme {
+        SystemBridgeStartErrorDialog(onDismissRequest = {})
     }
 }
 

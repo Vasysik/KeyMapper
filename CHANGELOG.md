@@ -1,3 +1,21 @@
+## [4.0.4](https://github.com/sds100/KeyMapper/releases/tag/v4.0.4)
+
+#### 21 February 2026
+
+## Added
+
+- #2024 support Expert mode on all Android versions supported by Key Mapper (8.0+).
+- #2025 add report bug button to home screen menu.
+- #2027 Make the key map sorting feature easier to understand.
+- #2016 Show a warning when repeating a key code action less than 20 ms with expert mode triggers.
+- Show dialog if Expert mode fails to start after 60 seconds instead of waiting indefinitely.
+
+## Fixed
+
+- #2030 do not filter out unknown evdev key events.
+- #2028 work around Shizuku bug on Mediatek devices that prevents Expert mode from starting.
+- #2034 catch errors when injecting events with Expert mode on Xiaomi devices and show warning to fix on home screen.
+
 ## [4.0.3](https://github.com/sds100/KeyMapper/releases/tag/v4.0.3)
 
 #### 07 February 2026

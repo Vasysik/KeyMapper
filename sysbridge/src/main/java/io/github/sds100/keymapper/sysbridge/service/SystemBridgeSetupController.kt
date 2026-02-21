@@ -1,7 +1,6 @@
 package io.github.sds100.keymapper.sysbridge.service
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
@@ -16,7 +15,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.sds100.keymapper.common.KeyMapperClassProvider
-import io.github.sds100.keymapper.common.utils.Constants
 import io.github.sds100.keymapper.common.utils.KMResult
 import io.github.sds100.keymapper.common.utils.SettingsUtils
 import io.github.sds100.keymapper.common.utils.isSuccess
@@ -25,6 +23,7 @@ import io.github.sds100.keymapper.sysbridge.adb.AdbManager
 import io.github.sds100.keymapper.sysbridge.manager.SystemBridgeConnectionManager
 import io.github.sds100.keymapper.sysbridge.manager.SystemBridgeConnectionState
 import io.github.sds100.keymapper.sysbridge.manager.awaitConnected
+import io.github.sds100.keymapper.sysbridge.service.SystemBridgeSetupControllerImpl.Companion.START_TIMEOUT_MS
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -56,6 +55,7 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
     companion object {
         private const val DEVELOPER_OPTIONS_SETTING = "development_settings_enabled"
         private const val ADB_WIRELESS_SETTING = "adb_wifi_enabled"
+        private const val START_TIMEOUT_MS = 60_000L
     }
 
     private val activityManager: ActivityManager by lazy { ctx.getSystemService()!! }
@@ -63,6 +63,9 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
     private val _isStarting: MutableStateFlow<Boolean> = MutableStateFlow(false)
     override val isStarting: StateFlow<Boolean> = _isStarting
     private var startJob: Job? = null
+
+    private val _showStartError: MutableSharedFlow<Unit> = MutableSharedFlow()
+    override val showStartError: Flow<Unit> = _showStartError
 
     override val isDeveloperOptionsEnabled: MutableStateFlow<Boolean> =
         MutableStateFlow(getDeveloperOptionsEnabled())
@@ -78,8 +81,8 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
     private val isAdbPairedResult: MutableStateFlow<Boolean?> = MutableStateFlow(null)
     private var isAdbPairedJob: Job? = null
 
-    override val shellHasGrantRuntimePermissions: MutableStateFlow<Boolean> =
-        MutableStateFlow(getShellHasGrantRuntimePermissions())
+    override val xiaomiAdbSecuritySettingsEnabled: MutableStateFlow<Boolean> =
+        MutableStateFlow(getXiaomiAdbSecuritySettingsEnabled())
 
     init {
         // Automatically go back to the Key Mapper app when turning on wireless debugging
@@ -109,48 +112,30 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
     }
 
     override fun startWithRoot() {
-        if (startJob?.isActive == true) {
-            Timber.i("System Bridge is already starting")
-            return
-        }
-
-        startJob = coroutineScope.launch {
-            _isStarting.value = true
-            try {
-                connectionManager.startWithRoot()
-                // Wait for the service to bind and start system bridge
-                withTimeoutOrNull(10000L) {
-                    connectionManager.awaitConnected()
-                }
-            } finally {
-                _isStarting.value = false
-            }
+        launchStartJob {
+            connectionManager.startWithRoot()
         }
     }
 
     override fun startWithShizuku() {
-        if (startJob?.isActive == true) {
-            Timber.i("System Bridge is already starting")
-            return
-        }
-
-        startJob = coroutineScope.launch {
-            _isStarting.value = true
-            try {
-                connectionManager.startWithShizuku()
-
-                // Wait for the service to bind and start system bridge
-                withTimeoutOrNull(10000L) {
-                    connectionManager.awaitConnected()
-                }
-            } finally {
-                _isStarting.value = false
-            }
+        launchStartJob {
+            connectionManager.startWithShizuku()
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
     override fun startWithAdb() {
+        launchStartJob {
+            connectionManager.startWithAdb()
+        }
+    }
+
+    /**
+     * Launch a start job that runs [start], then waits up to [START_TIMEOUT_MS] for the
+     * system bridge to connect. If it does not connect in time, an error is emitted
+     * via [showStartError].
+     */
+    private fun launchStartJob(start: suspend () -> Unit) {
         if (startJob?.isActive == true) {
             Timber.i("System Bridge is already starting")
             return
@@ -159,10 +144,16 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
         startJob = coroutineScope.launch {
             _isStarting.value = true
             try {
-                connectionManager.startWithAdb()
+                start()
+
                 // Wait for the service to bind and start system bridge
-                withTimeoutOrNull(10000L) {
+                val connected = withTimeoutOrNull(START_TIMEOUT_MS) {
                     connectionManager.awaitConnected()
+                }
+
+                if (connected == null) {
+                    Timber.e("System Bridge failed to start within ${START_TIMEOUT_MS}ms")
+                    _showStartError.emit(Unit)
                 }
             } finally {
                 _isStarting.value = false
@@ -374,7 +365,7 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
     fun invalidateSettings() {
         isDeveloperOptionsEnabled.update { getDeveloperOptionsEnabled() }
         isWirelessDebuggingEnabled.update { getWirelessDebuggingEnabled() }
-        shellHasGrantRuntimePermissions.update { getShellHasGrantRuntimePermissions() }
+        xiaomiAdbSecuritySettingsEnabled.update { getXiaomiAdbSecuritySettingsEnabled() }
     }
 
     private fun getDeveloperOptionsEnabled(): Boolean {
@@ -393,7 +384,7 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
         }
     }
 
-    private fun getShellHasGrantRuntimePermissions(): Boolean {
+    private fun getXiaomiAdbSecuritySettingsEnabled(): Boolean {
         return ctx.packageManager.checkPermission(
             "android.permission.GRANT_RUNTIME_PERMISSIONS",
             "com.android.shell",
@@ -421,11 +412,10 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
     }
 }
 
-@SuppressLint("ObsoleteSdkInt")
-@RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
 interface SystemBridgeSetupController {
     val setupAssistantStep: Flow<SystemBridgeSetupStep?>
     val isStarting: StateFlow<Boolean>
+    val showStartError: Flow<Unit>
 
     val isDeveloperOptionsEnabled: Flow<Boolean>
     fun enableDeveloperOptions()
@@ -454,7 +444,7 @@ interface SystemBridgeSetupController {
      * the Shell to have permission to grant runtime permissions, such as WRITE_SECURE_SETTINGS
      * to Key Mapper.
      */
-    val shellHasGrantRuntimePermissions: StateFlow<Boolean>
+    val xiaomiAdbSecuritySettingsEnabled: StateFlow<Boolean>
 
     fun launchDeveloperOptions()
 

@@ -5,7 +5,6 @@ import android.os.Process
 import androidx.annotation.RequiresApi
 import dagger.hilt.android.scopes.ViewModelScoped
 import io.github.sds100.keymapper.common.utils.Clock
-import io.github.sds100.keymapper.common.utils.Constants
 import io.github.sds100.keymapper.common.utils.KMResult
 import io.github.sds100.keymapper.common.utils.firstBlocking
 import io.github.sds100.keymapper.data.Keys
@@ -33,7 +32,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 @OptIn(ExperimentalCoroutinesApi::class)
-@RequiresApi(Constants.SYSTEM_BRIDGE_MIN_API)
 @ViewModelScoped
 class SystemBridgeSetupUseCaseImpl @Inject constructor(
     private val preferences: PreferenceRepository,
@@ -108,6 +106,9 @@ class SystemBridgeSetupUseCaseImpl @Inject constructor(
 
     override val isSystemBridgeStarting: Flow<Boolean> =
         systemBridgeSetupController.isStarting
+
+    override val showStartError: Flow<Unit> =
+        systemBridgeSetupController.showStartError
 
     override val isNotificationPermissionGranted: Flow<Boolean> =
         permissionAdapter.isGrantedFlow(Permission.POST_NOTIFICATIONS)
@@ -186,8 +187,8 @@ class SystemBridgeSetupUseCaseImpl @Inject constructor(
         systemBridgeSetupController.launchDeveloperOptions()
     }
 
-    override val shellHasGrantRuntimePermissions: Flow<Boolean> =
-        systemBridgeSetupController.shellHasGrantRuntimePermissions
+    override val xiaomiAdbSecuritySettingsEnabled: Flow<Boolean> =
+        systemBridgeSetupController.xiaomiAdbSecuritySettingsEnabled
 
     override fun connectWifiNetwork() {
         networkAdapter.connectWifiNetwork()
@@ -327,6 +328,7 @@ interface SystemBridgeSetupUseCase {
 
     val isSystemBridgeConnected: Flow<Boolean>
     val isSystemBridgeStarting: Flow<Boolean>
+    val showStartError: Flow<Unit>
     val nextSetupStep: Flow<SystemBridgeSetupStep>
 
     val isRootGranted: Flow<Boolean>
@@ -350,7 +352,7 @@ interface SystemBridgeSetupUseCase {
     fun startSystemBridgeWithAdb()
     fun autoStartSystemBridgeWithAdb()
 
-    val shellHasGrantRuntimePermissions: Flow<Boolean>
+    val xiaomiAdbSecuritySettingsEnabled: Flow<Boolean>
 
     fun isCompatibleUsbModeSelected(): KMResult<Boolean>
 

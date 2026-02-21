@@ -49,7 +49,7 @@ data class KeyMap(
         KeyMapAlgorithm.performActionOnDown(trigger) && action.data.canBeHeldDown()
 
     fun isHoldingDownActionBeforeRepeatingAllowed(action: Action): Boolean =
-        action.repeat && action.holdDown
+        action.repeat && action.holdDown && isHoldingDownActionAllowed(action)
 
     fun isChangingRepeatModeAllowed(action: Action): Boolean =
         action.repeat && isRepeatingActionsAllowed()
@@ -58,7 +58,7 @@ data class KeyMap(
         action.repeat && isRepeatingActionsAllowed()
 
     fun isStopHoldingDownActionWhenTriggerPressedAgainAllowed(action: Action): Boolean =
-        action.holdDown && !action.repeat
+        action.holdDown && !action.repeat && isHoldingDownActionAllowed(action)
 
     fun isDelayBeforeNextActionAllowed(): Boolean = actionList.isNotEmpty()
 }

@@ -11,6 +11,7 @@ import io.github.sds100.keymapper.base.onboarding.OnboardingTapTarget
 import io.github.sds100.keymapper.base.onboarding.OnboardingTipDelegate
 import io.github.sds100.keymapper.base.onboarding.OnboardingUseCase
 import io.github.sds100.keymapper.base.onboarding.SetupAccessibilityServiceDelegate
+import io.github.sds100.keymapper.base.trigger.EvdevTriggerKey
 import io.github.sds100.keymapper.base.utils.getFullMessage
 import io.github.sds100.keymapper.base.utils.isFixable
 import io.github.sds100.keymapper.base.utils.navigation.NavDestination
@@ -261,6 +262,7 @@ class ConfigActionsViewModel @Inject constructor(
                 )
 
                 RepeatMode.LIMIT_REACHED -> config.setActionStopRepeatingWhenLimitReached(uid)
+
                 RepeatMode.TRIGGER_PRESSED_AGAIN ->
                     config.setActionStopRepeatingWhenTriggerPressedAgain(uid)
             }
@@ -395,10 +397,17 @@ class ConfigActionsViewModel @Inject constructor(
             Int.MAX_VALUE
         }
 
+        val showRepeatRateWarning =
+            keyMap.isRepeatingActionsAllowed() &&
+                action.data is ActionData.InputKeyEvent &&
+                (action.repeatRate ?: defaultRepeatRate) < 20 &&
+                keyMap.trigger.keys.any { it is EvdevTriggerKey }
+
         return ActionOptionsState(
             showEditButton = action.data.isEditable(),
 
             showRepeat = keyMap.isRepeatingActionsAllowed(),
+            showRepeatRateWarning = showRepeatRateWarning,
             isRepeatChecked = action.repeat,
 
             showRepeatRate = keyMap.isChangingActionRepeatRateAllowed(action),
@@ -470,6 +479,7 @@ data class ActionOptionsState(
     val isRepeatChecked: Boolean,
 
     val showRepeatRate: Boolean,
+    val showRepeatRateWarning: Boolean,
     val repeatRate: Int,
     val defaultRepeatRate: Int,
 
