@@ -285,7 +285,9 @@ class SystemBridgeSetupControllerImpl @Inject constructor(
             isAdbPairedJob?.cancel()
             isAdbPairedResult.value = null
 
+            Timber.d("Launching isAdbPaired job")
             isAdbPairedJob = coroutineScope.launch {
+                Timber.d("Enabling wireless ADB")
                 SettingsUtils.putGlobalSetting(ctx, ADB_WIRELESS_SETTING, 1)
 
                 // Try running a command to see if the pairing is working correctly.

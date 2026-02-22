@@ -110,12 +110,17 @@ class SystemBridgeAutoStarter @Inject constructor(
 
                 useShizukuFlow.flatMapLatest { useShizuku ->
                     if (useShizuku) {
+                        Timber.i("autoStartTypeFlow: Use shizuku")
                         flowOf(AutoStartEligibility.Eligible(AutoStartType.SHIZUKU))
                     } else if (buildConfig.sdkInt >= Build.VERSION_CODES.R) {
+                        Timber.i("autoStartTypeFlow: Do not use shizuku")
                         combine(
                             permissionAdapter.isGrantedFlow(Permission.WRITE_SECURE_SETTINGS),
                             networkAdapter.isWifiConnected,
                         ) { isWriteSecureSettingsGranted, isWifiConnected ->
+                            Timber.i(
+                                "autoStartTypeFlow: Write secure settings: $isWriteSecureSettingsGranted, Wifi connected: $isWifiConnected",
+                            )
                             when {
                                 !isWifiConnected -> {
                                     AutoStartEligibility.NotEligible.WiFiDisconnected
