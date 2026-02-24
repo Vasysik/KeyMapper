@@ -1,3 +1,11 @@
+## [4.0.5](https://github.com/sds100/KeyMapper/releases/tag/v4.0.5)
+
+#### TO BE RELEASED
+
+## Fixed
+
+- #2047 allow empty text in Text action.
+
 ## [4.0.4](https://github.com/sds100/KeyMapper/releases/tag/v4.0.4)
 
 #### 21 February 2026

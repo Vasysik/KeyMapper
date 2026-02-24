@@ -843,7 +843,7 @@ class CreateActionDelegate(
                     "create_text_action",
                     DialogModel.Text(
                         hint = getString(R.string.hint_create_text_action),
-                        allowEmpty = false,
+                        allowEmpty = true,
                         text = oldText,
                     ),
                 ) ?: return null
