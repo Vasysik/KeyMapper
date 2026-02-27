@@ -802,6 +802,8 @@ class KeyMapAlgorithm(
         val detectedShortPressTriggers = mutableSetOf<Int>()
         val vibrateDurations = mutableListOf<Long>()
 
+        val errorSnapshot = performActionsUseCase.getErrorSnapshot()
+
         /*
         loop through triggers in a different loop first to increment the last matched index.
         Otherwise the order of the key maps affects the logic.
@@ -814,8 +816,6 @@ class KeyMapAlgorithm(
             val trigger = triggers[triggerIndex]
 
             val lastMatchedIndex = lastMatchedEventIndices[triggerIndex]
-
-            val errorSnapshot = performActionsUseCase.getErrorSnapshot()
 
             val actionList = triggerActions[triggerIndex]
                 .map { actionKey -> actionMap[actionKey]?.data }

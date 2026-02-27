@@ -78,9 +78,11 @@ fun FixKeyEventActionBottomSheet(
     ) {
         Column(
             modifier = Modifier
+                .animateContentSize()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
                 .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -90,24 +92,68 @@ fun FixKeyEventActionBottomSheet(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            Column(
-                modifier = Modifier
-                    .animateContentSize()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Text(stringResource(R.string.fix_key_event_action_text))
+            Text(stringResource(R.string.fix_key_event_action_text))
 
-                FixKeyEventActionOptionCard(
-                    onClick = onSelectInputMethod,
-                    selected = state is FixKeyEventActionState.InputMethod,
-                    title = stringResource(R.string.fix_key_event_action_input_method_title),
-                    icon = Icons.Rounded.Keyboard,
-                ) {
+            FixKeyEventActionOptionCard(
+                onClick = onSelectInputMethod,
+                selected = state is FixKeyEventActionState.InputMethod,
+                title = stringResource(R.string.fix_key_event_action_input_method_title),
+                icon = Icons.Rounded.Keyboard,
+            ) {
+                val annotatedText = buildAnnotatedString {
+                    appendInlineContent("icon", "[icon]")
+                    append(" ")
+                    append(stringResource(R.string.fix_key_event_action_input_method_text))
+                }
+                val inlineContent = mapOf(
+                    Pair(
+                        "icon",
+                        InlineTextContent(
+                            Placeholder(
+                                width = MaterialTheme.typography.bodyLarge.fontSize,
+                                height = MaterialTheme.typography.bodyLarge.fontSize,
+                                placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
+                            ),
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Remove,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                            )
+                        },
+                    ),
+                )
+                Text(
+                    annotatedText,
+                    inlineContent = inlineContent,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+
+            val isExpertModeUnsupported = state.expertModeStatus == ExpertModeStatus.UNSUPPORTED
+
+            FixKeyEventActionOptionCard(
+                onClick = onSelectExpertMode,
+                selected = state is FixKeyEventActionState.ExpertMode,
+                title = stringResource(R.string.expert_mode_app_bar_title),
+                icon = Icons.Outlined.OfflineBolt,
+                enabled = !isExpertModeUnsupported,
+            ) {
+                if (isExpertModeUnsupported) {
+                    Text(
+                        stringResource(R.string.trigger_setup_expert_mode_unsupported),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                } else {
                     val annotatedText = buildAnnotatedString {
                         appendInlineContent("icon", "[icon]")
                         append(" ")
-                        append(stringResource(R.string.fix_key_event_action_input_method_text))
+                        append(stringResource(R.string.fix_key_event_action_expert_mode_text_1))
+                        appendLine()
+                        appendInlineContent("icon", "[icon]")
+                        append(" ")
+                        append(stringResource(R.string.fix_key_event_action_expert_mode_text_2))
                     }
                     val inlineContent = mapOf(
                         Pair(
@@ -116,13 +162,14 @@ fun FixKeyEventActionBottomSheet(
                                 Placeholder(
                                     width = MaterialTheme.typography.bodyLarge.fontSize,
                                     height = MaterialTheme.typography.bodyLarge.fontSize,
-                                    placeholderVerticalAlign = PlaceholderVerticalAlign.TextCenter,
+                                    placeholderVerticalAlign =
+                                    PlaceholderVerticalAlign.TextCenter,
                                 ),
                             ) {
                                 Icon(
-                                    imageVector = Icons.Rounded.Remove,
+                                    imageVector = Icons.Rounded.Add,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error,
+                                    tint = LocalCustomColorsPalette.current.green,
                                 )
                             },
                         ),
@@ -133,64 +180,12 @@ fun FixKeyEventActionBottomSheet(
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
-
-                val isExpertModeUnsupported = state.expertModeStatus == ExpertModeStatus.UNSUPPORTED
-
-                FixKeyEventActionOptionCard(
-                    onClick = onSelectExpertMode,
-                    selected = state is FixKeyEventActionState.ExpertMode,
-                    title = stringResource(R.string.expert_mode_app_bar_title),
-                    icon = Icons.Outlined.OfflineBolt,
-                    enabled = !isExpertModeUnsupported,
-                ) {
-                    if (isExpertModeUnsupported) {
-                        Text(
-                            stringResource(R.string.trigger_setup_expert_mode_unsupported),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                    } else {
-                        val annotatedText = buildAnnotatedString {
-                            appendInlineContent("icon", "[icon]")
-                            append(" ")
-                            append(stringResource(R.string.fix_key_event_action_expert_mode_text_1))
-                            appendLine()
-                            appendInlineContent("icon", "[icon]")
-                            append(" ")
-                            append(stringResource(R.string.fix_key_event_action_expert_mode_text_2))
-                        }
-                        val inlineContent = mapOf(
-                            Pair(
-                                "icon",
-                                InlineTextContent(
-                                    Placeholder(
-                                        width = MaterialTheme.typography.bodyLarge.fontSize,
-                                        height = MaterialTheme.typography.bodyLarge.fontSize,
-                                        placeholderVerticalAlign =
-                                        PlaceholderVerticalAlign.TextCenter,
-                                    ),
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Add,
-                                        contentDescription = null,
-                                        tint = LocalCustomColorsPalette.current.green,
-                                    )
-                                },
-                            ),
-                        )
-                        Text(
-                            annotatedText,
-                            inlineContent = inlineContent,
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                    }
-                }
-
-                Text(
-                    stringResource(R.string.fix_key_event_action_change_in_settings_caption),
-                    style = MaterialTheme.typography.labelMedium,
-                )
             }
+
+            Text(
+                stringResource(R.string.fix_key_event_action_change_in_settings_caption),
+                style = MaterialTheme.typography.labelMedium,
+            )
 
             HeaderText(text = stringResource(R.string.fix_key_event_action_setup_title))
 
@@ -234,7 +229,10 @@ fun FixKeyEventActionBottomSheet(
                 }
             }
 
-            Button(modifier = Modifier.align(Alignment.End), onClick = onDoneClick) {
+            Button(
+                modifier = Modifier.align(Alignment.End),
+                onClick = onDoneClick,
+            ) {
                 Text(stringResource(R.string.pos_done))
             }
         }

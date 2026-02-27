@@ -1,3 +1,14 @@
+## [4.0.5](https://github.com/sds100/KeyMapper/releases/tag/v4.0.5)
+
+#### 26 February 2026
+
+## Fixed
+
+- #2047 allow empty text in Text action.
+- #2056 replace old "PRO" in triggers on home screen with "Expert".
+- #2053 reduce latency when a lot of key maps with open app actions.
+- #2054 fix "Fix key event action" bottom sheet done button being hidden on small screens.
+
 ## [4.0.4](https://github.com/sds100/KeyMapper/releases/tag/v4.0.4)
 
 #### 21 February 2026
