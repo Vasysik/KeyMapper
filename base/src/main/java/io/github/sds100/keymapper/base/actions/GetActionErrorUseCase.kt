@@ -14,20 +14,15 @@ import io.github.sds100.keymapper.system.permissions.SystemFeatureAdapter
 import io.github.sds100.keymapper.system.ringtones.RingtoneAdapter
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.stateIn
 
 @Singleton
 class GetActionErrorUseCaseImpl @Inject constructor(
-    private val coroutineScope: CoroutineScope,
     private val packageManagerAdapter: PackageManagerAdapter,
     private val inputMethodAdapter: InputMethodAdapter,
     private val switchImeInterface: SwitchImeInterface,
@@ -54,13 +49,13 @@ class GetActionErrorUseCaseImpl @Inject constructor(
         ),
     )
 
-    override val actionErrorSnapshot: StateFlow<ActionErrorSnapshot> = channelFlow {
+    override val actionErrorSnapshot: Flow<ActionErrorSnapshot> = channelFlow {
         send(createSnapshot())
 
         invalidateActionErrors.collectLatest {
             send(createSnapshot())
         }
-    }.stateIn(coroutineScope, SharingStarted.Eagerly, createSnapshot())
+    }
 
     private fun createSnapshot(): ActionErrorSnapshot {
         return LazyActionErrorSnapshot(

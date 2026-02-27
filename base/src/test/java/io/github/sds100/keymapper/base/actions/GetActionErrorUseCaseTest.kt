@@ -68,7 +68,6 @@ class GetActionErrorUseCaseTest {
         mockSystemBridgeConnectionManager = mock()
 
         useCase = GetActionErrorUseCaseImpl(
-            coroutineScope = testScope,
             packageManagerAdapter = mock(),
             inputMethodAdapter = fakeInputMethodAdapter,
             switchImeInterface = mock(),
