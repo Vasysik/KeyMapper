@@ -27,6 +27,7 @@ import io.github.sds100.keymapper.system.permissions.PermissionAdapter
 import io.github.sds100.keymapper.system.permissions.SystemFeatureAdapter
 import io.github.sds100.keymapper.system.ringtones.RingtoneAdapter
 import io.github.sds100.keymapper.system.settings.SettingType
+import java.util.concurrent.ConcurrentHashMap
 
 class LazyActionErrorSnapshot(
     private val packageManager: PackageManagerAdapter,
@@ -64,6 +65,9 @@ class LazyActionErrorSnapshot(
             }
         }
     }
+
+    private val isAppEnabledCache = ConcurrentHashMap<String, Boolean>()
+    private val isAppInstalledCache = ConcurrentHashMap<String, Boolean>()
 
     private val isSystemBridgeConnected: Boolean by lazy {
         systemBridgeConnectionManager.isConnected()
@@ -250,13 +254,30 @@ class LazyActionErrorSnapshot(
     }
 
     private fun getAppError(packageName: String): KMError? {
+        if (isAppEnabledCache.contains(packageName) && isAppInstalledCache.contains(packageName)) {
+            if (isAppEnabledCache[packageName] == false) {
+                return KMError.AppDisabled(packageName)
+            }
+
+            if (isAppInstalledCache[packageName] == false) {
+                return KMError.AppDisabled(packageName)
+            }
+
+            return null
+        }
+
+        val isAppInstalled = packageManager.isAppInstalled(packageName)
+        isAppInstalledCache[packageName] = isAppInstalled
+
         packageManager.isAppEnabled(packageName).onSuccess { isEnabled ->
+            isAppEnabledCache[packageName] = isEnabled
+
             if (!isEnabled) {
                 return KMError.AppDisabled(packageName)
             }
         }
 
-        if (!packageManager.isAppInstalled(packageName)) {
+        if (!isAppInstalled) {
             return KMError.AppNotFound(packageName)
         }
 
