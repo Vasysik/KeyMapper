@@ -323,7 +323,7 @@ class KeyMapListItemCreator(
         append(key.getCodeLabel(this@KeyMapListItemCreator))
 
         val parts = buildList {
-            add("PRO")
+            add("Expert")
             add(key.device.name)
 
             if (!key.consumeEvent) {

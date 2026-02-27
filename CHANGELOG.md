@@ -5,6 +5,7 @@
 ## Fixed
 
 - #2047 allow empty text in Text action.
+- #2056 replace old "PRO" in triggers on home screen with "Expert".
 
 ## [4.0.4](https://github.com/sds100/KeyMapper/releases/tag/v4.0.4)
 
