@@ -7,7 +7,6 @@ import android.content.IntentFilter
 import android.hardware.display.DisplayManager
 import android.provider.Settings
 import android.view.Display
-import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
@@ -50,11 +49,6 @@ class AndroidDisplayAdapter @Inject constructor(
          */
         private const val BRIGHTNESS_CHANGE_STEP = 20
 
-        /**
-         * Tolerance in degrees for orientation detection.
-         * This helps avoid rapid switching at orientation boundaries.
-         */
-        private const val ORIENTATION_TOLERANCE = 45
     }
 
     private val ctx = context.applicationContext
@@ -104,17 +98,6 @@ class AndroidDisplayAdapter @Inject constructor(
     override val isAmbientDisplayEnabled: MutableStateFlow<Boolean> =
         MutableStateFlow(isAodEnabled())
 
-    private val orientationEventListener = object : OrientationEventListener(ctx) {
-        override fun onOrientationChanged(orientationDegrees: Int) {
-            if (orientationDegrees == ORIENTATION_UNKNOWN) {
-                return
-            }
-
-            val newPhysicalOrientation = degreesToPhysicalOrientation(orientationDegrees)
-            _physicalOrientation.update { newPhysicalOrientation }
-        }
-    }
-
     init {
         displayManager.registerDisplayListener(
             object : DisplayManager.DisplayListener {
@@ -127,7 +110,9 @@ class AndroidDisplayAdapter @Inject constructor(
                 }
 
                 override fun onDisplayChanged(displayId: Int) {
-                    _orientation.update { getDisplayOrientation() }
+                    val newOrientation = getDisplayOrientation()
+                    _orientation.update { newOrientation }
+                    _physicalOrientation.update { orientationToPhysicalOrientation(newOrientation) }
 
                     // This listener API has lower latency than the broadcast receiver so also use this.
                     val isScreenStateOn = displayManager.displays.first().state == Display.STATE_ON
@@ -147,11 +132,6 @@ class AndroidDisplayAdapter @Inject constructor(
             filter,
             ContextCompat.RECEIVER_NOT_EXPORTED,
         )
-
-        // Enable physical orientation detection
-        if (orientationEventListener.canDetectOrientation()) {
-            orientationEventListener.enable()
-        }
     }
 
     override fun isAutoRotateEnabled(): Boolean =
@@ -291,35 +271,11 @@ class AndroidDisplayAdapter @Inject constructor(
         return SettingsUtils.getSecureSetting<Int>(ctx, "doze_always_on") == 1
     }
 
-    /**
-     * Converts sensor orientation degrees to PhysicalOrientation.
-     *
-     * The orientation degrees from OrientationEventListener represent how much
-     * the device is rotated from its natural orientation:
-     * - 0°: Device is upright (portrait for most phones)
-     * - 90°: Device is rotated 90° counter-clockwise (landscape, home button on right)
-     * - 180°: Device is upside down (portrait inverted)
-     * - 270°: Device is rotated 90° clockwise (landscape, home button on left)
-     *
-     * Using a tolerance helps avoid rapid orientation changes at boundaries.
-     */
-    private fun degreesToPhysicalOrientation(degrees: Int): PhysicalOrientation {
-        // OrientationEventListener returns 0-359 degrees.
-        // Handle wraparound at 0/360 boundary for portrait detection.
-        // Degrees outside the defined tolerance zones (e.g., 45-89° between portrait and landscape)
-        // are intentionally kept as the current orientation to provide hysteresis and prevent
-        // rapid orientation switching when the device is tilted at boundary angles.
-        return when {
-            degrees >= (360 - ORIENTATION_TOLERANCE) ||
-                degrees < ORIENTATION_TOLERANCE ->
-                PhysicalOrientation.PORTRAIT
-            degrees in (90 - ORIENTATION_TOLERANCE) until (90 + ORIENTATION_TOLERANCE) ->
-                PhysicalOrientation.LANDSCAPE
-            degrees in (180 - ORIENTATION_TOLERANCE) until (180 + ORIENTATION_TOLERANCE) ->
-                PhysicalOrientation.PORTRAIT_INVERTED
-            degrees in (270 - ORIENTATION_TOLERANCE) until (270 + ORIENTATION_TOLERANCE) ->
-                PhysicalOrientation.LANDSCAPE_INVERTED
-            else -> _physicalOrientation.value // Keep current orientation in transition zone
+    private fun orientationToPhysicalOrientation(orientation: Orientation): PhysicalOrientation =
+        when (orientation) {
+            Orientation.ORIENTATION_0 -> PhysicalOrientation.PORTRAIT
+            Orientation.ORIENTATION_90 -> PhysicalOrientation.LANDSCAPE
+            Orientation.ORIENTATION_180 -> PhysicalOrientation.PORTRAIT_INVERTED
+            Orientation.ORIENTATION_270 -> PhysicalOrientation.LANDSCAPE_INVERTED
         }
-    }
 }
